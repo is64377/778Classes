@@ -1,0 +1,86 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>class 3</title>
+<style>
+body {
+  position: absolute;
+  margin: 0px;
+}
+svg {
+  background-color: lightblue;
+  fill-opacity: .3;
+}
+.info {
+  font-family: sans-serif;
+  color: #000;
+  position: absolute;
+  top: 450px;
+  left: 800px;
+}
+path {
+  fill: #555555;
+  stroke: #aaaaaa;
+}
+path.quake, circle.quake {
+  fill: crimson;
+  fill-opacity: 1;
+}
+path.state {
+  fill: green;
+  stroke: #000;
+}
+}
+</style>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+
+<body>
+<script>
+var width = 960, height = 500;
+var data = null; // This is a global variable
+var usgs_data; // This is a global variable
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+var projection = d3.geoAlbersUsa();
+var path = d3.geoPath()
+    .projection(projection);
+	
+var layer1 = svg.append("g");
+var layer2 = svg.append("g");
+var url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson";
+var base = "https://umbcvis.github.io/classes/class-03/us.json"
+d3.json(base, plotStates);
+function plotStates(error, json) {
+  if (error) console.log(error);
+  
+  // Assign the json to a global so we can manipulate it in the console
+  usgs_data = json.objects.us.geometries.map(function(d) { return topojson.feature(json, d); })
+  // Plot the States
+  layer2.selectAll("path.state")
+      .data(usgs_data)
+    .enter().append("path")
+      .attr("class", "state")
+      .attr("d", path)
+}
+d3.json(url, plotQuakes);
+function plotQuakes(error, json) {
+  if (error) console.log(error);
+data = json;
+var features = data.features;
+ layer1.selectAll("path.quake")
+      .data(features)
+    .enter().append("path")
+      .attr("class", "quake")
+      .attr("d", path)
+} 
+function mousemoved() {
+  info.text(formatLocation(projection.invert(d3.mouse(this)), projection.scale()));
+}
+function formatLocation(p, k) {
+  var format = d3.format("." + Math.floor(Math.log(k) / 2 - 2) + "f");
+  return (p[1] < 0 ? format(-p[1]) + "°S" : format(p[1]) + "°N") + " "
+       + (p[0] < 0 ? format(-p[0]) + "°W" : format(p[0]) + "°E");
+}
+</script>
