@@ -1,0 +1,9 @@
+
+.bar rect {
+  fill: red;
+}
+
+.bar text {
+  fill: #fff;
+  font: 10px sans-serif;
+}
