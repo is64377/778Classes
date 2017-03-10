@@ -7,5 +7,5 @@ This repository modifies the us_earthquakes map from the previous classes by:
 -Adding a total count for earthquakes by magnitude.
 
 -Blockbuilder:
-http://blockbuilder.org/is64377/a32e2c53d4398aa45ed4e74c98074500
+http://blockbuilder.org/anonymous/07aa916255dfb21f93e85cf6992ef141
 
