@@ -1,1 +1,175 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
 
+body {
+  margin: 4;
+}
+
+path {
+  fill: none;
+  stroke: black;
+  stroke-linejoin: round;
+  stroke-width: 0.5px;
+}
+
+path.quake {
+  fill: crimson;
+}
+  
+</style>
+<svg>
+
+</svg>
+<script src="//d3js.org/d3.v4.min.js"></script>
+<script src="//d3js.org/d3-tile.v0.0.min.js"></script>
+<script src="//d3js.org/topojson.v1.min.js"></script>
+<script>
+
+var pi = Math.PI,
+    tau = 2 * pi;
+
+var width = Math.max(860, window.innerWidth),
+    height = Math.max(600, window.innerHeight);
+var data;  // declare a global variable
+
+//Mousemove  
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .on("mousemove", mousemoved);
+
+// Fit the world in a 1×1 square, centered on the origin.
+var projection = d3.geoMercator()
+    .scale(1 / tau)
+    .translate([0, 0]);
+
+var path = d3.geoPath()
+    .projection(projection);
+
+var tile = d3.tile()
+    .size([width, height]);
+
+var zoom = d3.zoom()
+    .scaleExtent([1 << 11, 1 << 14])
+    .on("zoom", zoomed);
+
+var svg = d3.select("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var raster = svg.append("g");
+
+var vector = svg.append("path");
+  
+// Title
+svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', "5.3em")
+    .style('font-size', '2.7em')
+    .style('text-anchor', 'middle')
+    .text('Earthquakes in the Last Week')
+
+d3.json("https://gist.githubusercontent.com/mbostock/4090846/raw/d534aba169207548a8a3d670c9c2cc719ff05c47/us.json", function(error, us) {
+  if (error) throw error;
+
+  vector
+      .datum(topojson.mesh(us, us.objects.states));
+
+  // Compute the projected initial center.
+  var center = projection([-98.5, 39.5]);
+
+  // Apply a zoom transform equivalent to projection.{scale,translate,center}.
+  svg
+      .call(zoom)
+      .call(zoom.transform, d3.zoomIdentity
+          .translate(width / 2, height / 2)
+          .scale(1 << 12.8)
+          .translate(-center[0], -center[1]));
+});
+
+function zoomed() {
+  var transform = d3.event.transform;
+
+  var tiles = tile
+      .scale(transform.k)
+      .translate([transform.x, transform.y])
+      ();
+
+  projection
+      .scale(transform.k / tau)
+      .translate([transform.x, transform.y]);
+
+  vector
+      .attr("d", path);
+
+  var image = raster
+      .attr("transform", stringify(tiles.scale, tiles.translate))
+    .selectAll("image")
+    .data(tiles, function(d) { return d; });
+
+  image.exit().remove();
+
+  image.enter().append("image")
+      .attr("xlink:href", function(d) { return "http://" + "abc"[d[1] % 3] + ".tile.openstreetmap.org/" + d[2] + "/" + d[0] + "/" + d[1] + ".png"; })
+      .attr("x", function(d) { return d[0] * 256; })
+      .attr("y", function(d) { return d[1] * 256; })
+      .attr("width", 256)
+      .attr("height", 256);
+}
+
+function stringify(scale, translate) {
+  var k = scale / 256, r = scale % 1 ? Number : Math.round;
+  return "translate(" + r(translate[0] * scale) + "," + r(translate[1] * scale) + ") scale(" + k + ")";
+}
+var path = d3.geoPath()
+    .projection(projection);
+
+// Send earthquake data to function "plotQuakes"
+var usgs = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+
+// Topojson for US states
+var url = "https://umbcvis.github.io/classes/class-03/us.json"
+
+d3.json(url, plotStates);
+d3.json(usgs, plotQuakes);
+
+function plotStates(error, json) {
+
+// Convert topojson to an Array of GeoJSON features
+// This defines "data", a global variable that can be manipulated in the developer console
+  data = json.objects.us.geometries.map(function(d) { return topojson.feature(json, d); })
+  
+}
+
+// Plot the earthquake data
+function plotQuakes(error, json) {
+  if (error) return console.log(error);
+
+// Global variable: data, will be visible in Console
+  data = json;
+
+// Extract an array of feature objects, one for each earthquake
+  var features = json.features;
+
+// Plot the earthquakes
+  var layer2 = svg.append("g");
+
+  layer2.selectAll("path.quake")
+      .data(features)
+    .enter().append("path")
+      .attr("class", "quake")
+      .attr("d", path)
+}
+
+function mousemoved() {
+  info.text(formatLocation(projection.invert(d3.mouse(this)), projection.scale()));
+}
+
+function formatLocation(p, k) {
+  var format = d3.format("." + Math.floor(Math.log(k) / 2 - 2) + "f");
+  return (p[1] < 0 ? format(-p[1]) + "°S" : format(p[1]) + "°N") + " "
+       + (p[0] < 0 ? format(-p[0]) + "°W" : format(p[0]) + "°E");
+}
+  
+</script>
