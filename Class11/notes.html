@@ -1,31 +1,13 @@
 In-class exercises...
-
-Add earthquakes to Zoomable map tiles: https://bl.ocks.org/mbostock/5593150
-○ Show how this was done, step by step
-○ Describe what’s going using API Reference...
-○ https://github.com/d3/d3/blob/master/API.md
-○ https://github.com/d3/d3-zoom
-2. Introduction to Mike Bostock’s us-atlas
-○ https://github.com/topojson/us-atlas
-○ Students using US Census data for projects may make use of this
-3. In-class exercises...
-○ Add a circle to the map so that it zooms
-○ Add an earthquake to the map
-○ Show earthquake metadata on mouseover
-○ Show vector metadata on mouseover
-○ Style the some of the features in the map
-4. Document projects on Github (data sources, goals & objectives)
-○ Add a circle to the map so that it zooms
-var circle = d3.select("body").append("circle")
+1 Add a circle to the map so that it zooms
+	var circle = d3.select("body").append("circle")
      .attr("r",5)
 		 .style("fill", "green")
 
-○ Add an earthquake to the map
-var usgs = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+2 Add an earthquake to the map
+	var usgs = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
 
-○ Show earthquake metadata on mouseover
-○ Show vector metadata on mouseover
-○ Style the some of the features in the map
+3 Show earthquake metadata on mouseover
+4 Show vector metadata on mouseover
+5 Style the some of the features in the map
 
-
-project benfry zipcodes
