@@ -1,134 +1,106 @@
-//Class6
 <!DOCTYPE html>
 <meta charset="utf-8">
+<title>778Project</title>
 <style>
-
 body {
-  font: 12px sans-serif;
+  position: absolute;
+  margin: 0px;
 }
+svg {
+  background-color: lightgray;
+}
+.info {
+  font-family: sans-serif;
+  color: #000000;
+  position: absolute;
+  top: 450px;
+  left: 800px;
+}
+  path{
+   fill: white;
+   stroke:black;
+  }
+ </style>
 
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #0002;
-  shape-rendering: none;
-}
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
 
-.dot {
-  fill: orchid;
-  stroke: #008;
-}
-  
-.dot:hover {
-  fill: lightGreen;
-}
-  
-div.tooltip {   
-  position: absolute;     
-  text-align: center;
-  vertical-align: top;   
-  width: 100px;                  
-  height: 30px;                 
-  padding: 18px; 
-  color: #6d6d6d;          
-  font-size: 12px;
-  font-weight: bold;
-  line-height: 70%;
-  background: #bcfffd;
-  box-shadow: 4px 4px 2px rgba(1, 1, 0, 0.1);
-  border: 2px;  
-  border-radius: 2px;  
-  pointer-events: none;                  
-} 
-  
-</style>
 <body>
-<svg width="960" height="550"></svg>
-<script src="//d3js.org/d3.v4.min.js"></script>
 <script>
+var width = 960, height = 500;
+var data;  // declare a global variable  
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .on("mousemove", mousemoved);
+  
+svg.append('text')
+    .attr('x', width / 2)
+    .attr('y', "1.5em")
+    .style('font-size', '1.5em')
+    .style('text-anchor', 'middle')
+    .text('Reported OSHA Injuries')
+ 
+var layer1 = svg.append("g");
+  
+// Add a <div> element to label the mouse position
+var info = d3.select("body").append("div")
+    .attr("class", "info");
+var projection = d3.geoAlbersUsa();
+var path = d3.geoPath()
+    .projection(projection);
+// Topojson for US states
+var url = "https://umbcvis.github.io/classes/class-03/us.json"
+var OSHA = "https://raw.githubusercontent.com/is64377/778Classes/master/Project/OSHA.csv"
+// Load in the OSHA data
+d3.csv("https://raw.githubusercontent.com/is64377/778Classes/master/Project/OSHA.csv")
 
-// Define the tooltip for hover-over info windows
-var div = d3.select("body").append("div")   
-  	.attr("class", "tooltip")               
-  	.style("opacity", 00);
-  
-// Set the dimensions and margins of the graph
-var svg = d3.select("svg"),
-    margin = {top: 70, right: 20, bottom: 60, left: 60},
-    width = +svg.attr("width") - margin.left - margin.right,
-    height = +svg.attr("height") - margin.top - margin.bottom;
 
-// Set the ranges
-var x = d3.scaleLinear().rangeRound([0, width]),
-    y = d3.scaleLinear().rangeRound([height, 0]);
+d3.csv(OSHA,function(err,csv){
+  if (err) throw err;
+  console.log(csv[0])
+});
+  
+//var data = csv.features.objects(function(d) { return [ d.geometry.coordinates[1], d.geometry.coordinates[2], d.properties[12]});  
+  
+d3.json(url, plotOSHA);
+function plotOSHA(error, json) {
 
-// Append the SVG element with a g element
-// to offset the origin of the chart area by
-// the top-left margin
-var g = svg.append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+// This defines "data", a global variable that can be manipulated in the developer console
+  data = json.objects.us.geometries.map(function(d) { return topojson.feature(json, d); })
+//NEW: Plot the states in a <g> element
+  layer1.selectAll("path")
+      .data(data)
+      .enter()
+      .append("path")
+      .attr("d", path);
+}
 
-// USGS Real-Time Earthquake Feed
-var usgs = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+// Label on the map the geographic coordinates of the mouse position
+function mousemoved() {
+  info.text(formatLocation(projection.invert(d3.mouse(this)), projection.scale()));
+}
+//Format the displayed text in the the <div> element on the map
+function formatLocation(p, k) {
+  var format = d3.format("." + Math.floor(Math.log(k) / 2 - 2) + "f");
+  return (p[1] < 0 ? format(-p[1]) + "°S" : format(p[1]) + "°N") + " "
+       + (p[0] < 0 ? format(-p[0]) + "°W" : format(p[0]) + "°E");
+}
   
-//https://raw.githubusercontent.com/is64377/778Classes/master/Project/OSHA.csv  
-
-// Create the scatterplot with the USGS data
-d3.json(usgs, function(error, data) {
-  if (error) console.log(error);
-  
-  // Filter and format the data for use in the range
-  magnitude = data.features.map(function(d) { return d.properties.mag; });
-  depth = data.features.map(function(d) { return d.geometry.coordinates[2]; });
-  
-  // Scale the range of the data from the minimum value
-  // to the maximum value
-  x.domain([d3.min(depth), d3.max(depth)]);
-  y.domain([d3.min(magnitude), d3.max(magnitude)]);
-  
-  // Add the X-Axis
-  g.append("g")
-    .attr("class", "axis axis--x")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x).ticks(20));
-  
-  // Add a label for the X-Axis
-  g.append("text")
-    .attr("transform", "translate(" + (width/2) + " ," + (height + margin.top + 20) + ")")
-    .style("text-anchor", "middle")
-    .style("font-size", "15px")
-    .text("Depth (km)");
-  
-  // Add the Y-Axis
-  g.append("g")
-    .attr("class", "axis axis--y")
-    .call(d3.axisLeft(y).ticks(12));
-  
-  // Add a label for the Y-Axis
-  g.append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", 0 - margin.left)
-    .attr("x", 0 - (height / 2))
-    .attr("dy", "1.38em")
-    .style("text-anchor", "middle")
-    .style("font-size", "15px")
-    .text("Magnitude");
-  
-
-  // Add the dots to the scatterplot with the tooltip
+ // Add the dots to the scatterplot with the tooltip
   g.selectAll(".dot")
     .data(data.features)
     .enter().append("circle")
       .attr("class", "dot")
       .attr("r", 3.2)
       .attr("cx", function(d) { return x(d.geometry.coordinates[2]); })
-      .attr("cy", function(d) { return y(d.properties.mag); })
+      .attr("cy", function(d) { return y(d.properties.Hospitalized); })
       .on("mouseover", function(d) {
         div.transition()
           .duration(-134)
           .style("opacity", .95)
           .style("stroke", "black");
-        div.html("<b><u>Magnitude</b></u>: " + d.properties.mag + "<br/>" + "<br/>" + "<br/>" + "<b><u>Depth</b></u>: " + d.geometry.coordinates[2] + " km")
+        div.html("<b><u>Hospitalized</b></u>: " + d.properties.Hospitalized + "<br/>" + "<br/>" + "<br/>" + "<b><u>NatureTitle</b></u>: " + d.geometry.coordinates[2] )
           .style("left", (d3.event.pageX + 10) + "px")
           .style("top", (d3.event.pageY - 30) + "px");
       })
@@ -136,303 +108,5 @@ d3.json(usgs, function(error, data) {
         div.transition()
           .duration(10)
           .style("opacity", 30);
-      });
-});
-
-</script>
-  
-
-  //Class5
-<!DOCTYPE html>
-<meta charset="utf6">
-<title>class 4 - states</title>
-
-<style>
-body {
-  position: absolute;
-  margin: 0px;
-}
-  
-svg {
-  background-color: #b97ebe;
-} 
-  
-path.state {
-  fill: #747674;
-  stroke: #6a6a6c;
-}
-path.quake1, circle.quake1 {
-  fill: LightGreen;
-  fill-opacity: 0.9;
-}
-path.quake2, circle.quake2 {
-  fill: yellow;
-  fill-opacity: 0.6;
-}
-path.quake3, circle.quake3 {
-  fill: Orange;
-  fill-opacity: 0.9;
-}  
-path.quake4, circle.quake4 {
-  fill: rgb(215, 10, 29);
-  fill-opacity: 0.6;
-}
-  
-</style>
-
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<script src="https://d3js.org/topojson.v2.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.21.0/d3-legend.js"></script>
-
-<body>
-<script>
-  
-// Set SVG size
-var width = 1000, height = 800;
-  
-// Global variable for state data
-var state_data;
-// Global variable for USGS data
-var usgs_data;
-// Create SVG element
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
-// Add layer one (US States) to SVG
-var layer1 = d3.select("svg").append("svg")
-    .attr("y", 100); 
-// Add layers (US Earthquakes) to SVG
-var layer2 = d3.select("svg").append("svg")
-      .attr("y", 100);
-var layer3 = d3.select("svg").append("svg")
-      .attr("y", 100);
-var layer4 = d3.select("svg").append("svg")
-      .attr("y", 100);
-var layer5 = d3.select("svg").append("svg")
-      .attr("y", 100);
-  
-// Set the map projection
-var projection = d3.geoAlbersUsa();
-// Set geographic path generator
-var path = d3.geoPath()
-    .pointRadius(3.5)
-    .projection(projection);
-  
-// US Basemap
-var US_Base = "https://raw.githubusercontent.com/is64377/778Classes/master/Class5/us.json"
-// USGS Real-Time Earthquake Feed
-var usgs = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
-// Create an Ordinal Legend          
-var ordinal = d3.scaleOrdinal()
-  .domain(["1.0 - 2.0", "2.0 - 3.0", "3.0 - 4.0", "4.0 +"])
-  .range([ "rgb(50, 205, 50)", "rgb(255, 255, 0)", "rgb(255, 140, 0)", "rgb(215, 30, 29)"]);
-var svg2 = d3.select("svg").append("svg")
-  .attr("x", 825)
-  .attr("y", 450);
-svg2.append("g")
-  .attr("class", "legendOrdinal")
-  .attr("transform", "translate(20,10)")
-  .attr("fill", "white");
-var legendOrdinal = d3.legendColor()
-  .shape("path", d3.symbol().type(d3.symbolCircle).size(100)())
-  .shapePadding(12)
-  .title("Magnitude")
-  .scale(ordinal);
-svg.select(".legendOrdinal")
-  .call(legendOrdinal);
-  
-// Add a title using D3.js
-svg.append("text")
-  .attr("x", (width / 2))
-  .attr("y", (height / 18))
-  .attr("text-anchor", "middle")
-  .style("font-size", "32px")
-  .style("font-family", "sans-serif")
-  .attr("fill", "white")
-  .text("Last Week's Earthquakes by Magnitude");    
-  
-// Read and plot the US States
-d3.json(US_Base, plotStates);
-function plotStates(error, json) {
-  
-  // Create array of GeoJSON features -- this defines the global variable "state_data"
-  state_data = json.objects.us.geometries.map(
-    function(d) { 
-      return topojson.feature(json, d);
-    })
-  
-  // Read and plot the US Earthquakes
-  d3.json(usgs, plotQuakes);
-  
-  function plotQuakes(error, json) {
-  
-    // Assign the json to a global variable "usgs_data"
-    usgs_data = json;
-    // Filter the features by magnitude
-    var features1 = usgs_data.features.filter(function(d) {
-      return (d.properties.mag >= 1.0) && (d.properties.mag < 2.0)
-    });
-    
-    var features2 = usgs_data.features.filter(function(d) {
-      return (d.properties.mag >= 2.0) && (d.properties.mag < 3.0)
-    });
-  
-    var features3 = usgs_data.features.filter(function(d) {
-      return (d.properties.mag >= 3.0) && (d.properties.mag < 4.0)
-    });
-    
-    var features4 = usgs_data.features.filter(function(d) {
-      return (d.properties.mag >= 4.0)
-    });
-    
-    
-    // Plot the earthquakes and calculate the total count
-    layer2.selectAll('path.quake1')
-        .data(features1)
-      .enter().append('path')
-        .attr("class", "quake1")
-        .attr("d", path)
-        
-    var us_bbox1 = features1.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -125.011) && (d.geometry.coordinates[0] <= -66.9326))
-             && ((d.geometry.coordinates[1] >= 24.9493) && (d.geometry.coordinates[1] <= 49.5904)))
-    });
-    
-    var ak_bbox1 = features1.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -179.1505) && (d.geometry.coordinates[0] <= -129.9795))
-             && ((d.geometry.coordinates[1] >= 51.2097) && (d.geometry.coordinates[1] <= 71.4410)))
-    });
-    
-    var hw_bbox1 = features1.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -160.2471) && (d.geometry.coordinates[0] <= -154.8066))
-             && ((d.geometry.coordinates[1] >= 18.9117) && (d.geometry.coordinates[1] <= 22.2356)))
-    });
-    
-    var sum1 = us_bbox1.length + ak_bbox1.length + hw_bbox1.length;
-   
-    layer3.selectAll("path.quake2")
-        .data(features2)
-      .enter().append("path")
-        .attr("class", "quake2")
-        .attr("d", path)
-    
-    var us_bbox2 = features2.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -125.011) && (d.geometry.coordinates[0] <= -66.9326))
-             && ((d.geometry.coordinates[1] >= 24.9493) && (d.geometry.coordinates[1] <= 49.5904)))
-    });
-    
-    var ak_bbox2 = features2.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -180) && (d.geometry.coordinates[0] <= -125.8593))
-             && ((d.geometry.coordinates[1] >= 48.3416) && (d.geometry.coordinates[1] <= 71.8014)))
-    });
-    
-    var hw_bbox2 = features2.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -160.2471) && (d.geometry.coordinates[0] <= -154.8066))
-             && ((d.geometry.coordinates[1] >= 18.9117) && (d.geometry.coordinates[1] <= 22.2356)))
-    });
-    
-    var sum2 = us_bbox2.length + ak_bbox2.length + hw_bbox2.length; 
-    
-    layer4.selectAll("path.quake3")
-        .data(features3)
-      .enter().append("path")
-        .attr("class", "quake3")
-        .attr("d", path)
-    
-    var us_bbox3 = features3.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -125.011) && (d.geometry.coordinates[0] <= -66.9326))
-             && ((d.geometry.coordinates[1] >= 24.9493) && (d.geometry.coordinates[1] <= 49.5904)))
-    });
-    
-    var ak_bbox3 = features3.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -180) && (d.geometry.coordinates[0] <= -125.8593))
-             && ((d.geometry.coordinates[1] >= 48.3416) && (d.geometry.coordinates[1] <= 71.8014)))
-    });
-    
-    var hw_bbox3 = features3.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -160.2471) && (d.geometry.coordinates[0] <= -154.8066))
-             && ((d.geometry.coordinates[1] >= 18.9117) && (d.geometry.coordinates[1] <= 22.2356)))
-    });
-    
-    var sum3 = us_bbox3.length + ak_bbox3.length + hw_bbox3.length; 
-    
-    layer5.selectAll("path.quake4")
-        .data(features4)
-      .enter().append("path")
-        .attr("class", "quake4")
-        .attr("d", path)
-    
-    var us_bbox4 = features4.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -125.011) && (d.geometry.coordinates[0] <= -66.9326))
-             && ((d.geometry.coordinates[1] >= 24.9493) && (d.geometry.coordinates[1] <= 49.5904)))
-    });
-    
-    var ak_bbox4 = features4.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -180) && (d.geometry.coordinates[0] <= -125.8593))
-             && ((d.geometry.coordinates[1] >= 48.3416) && (d.geometry.coordinates[1] <= 71.8014)))
-    });
-    
-    var hw_bbox4 = features4.filter(function(d) {
-      return (((d.geometry.coordinates[0] >= -160.2471) && (d.geometry.coordinates[0] <= -154.8066))
-             && ((d.geometry.coordinates[1] >= 18.9117) && (d.geometry.coordinates[1] <= 22.2356)))
-    });
-    
-    var sum4 = us_bbox4.length + ak_bbox4.length + hw_bbox4.length; 
-    
-    // Display the total count of earthquakes by filter
-    svg.append("text")
-      .attr("x", (width / 5))
-      .attr("y", (height - 25))
-      .style("font-size", "17px")
-      .style("font-family", "sans-serif")
-      .attr("fill", "white")
-      .text("Number of Earthquakes by Magnitude: ")
-    
-    svg.append("text")
-      .attr("x", (width / 1.9))
-      .attr("y", (height - 25))
-      .style("font-size", "17px")
-      .style("font-family", "sans-serif")
-      .style("font-weight", "bold")
-      .attr("fill", "LightGreen")
-      .text(sum1 + ",")
-    
-    svg.append("text")
-      .attr("x", (width / 1.74))
-      .attr("y", (height - 25))
-      .style("font-size", "17px")
-      .style("font-family", "sans-serif")
-      .style("font-weight", "bold")
-      .attr("fill", "yellow")
-      .text(sum2 + ",")
-    
-    svg.append("text")
-      .attr("x", (width / 1.6))
-      .attr("y", (height - 25))
-      .style("font-size", "17px")
-      .style("font-family", "sans-serif")
-      .style("font-weight", "bold")
-      .attr("fill", "orange")
-      .text(sum3 + ",")
-    
-    svg.append("text")
-      .attr("x", (width / 1.5))
-      .attr("y", (height - 25))
-      .style("font-size", "17px")
-      .style("font-family", "sans-serif")
-      .style("font-weight", "bold")
-      .attr("fill", "rgb(215, 20, 29)")
-      .text(sum4);
-    
-  }
-  
-  // Plot the states
-  layer1.selectAll("path")
-      .data(state_data)
-    .enter()
-      .append("path")
-      .attr("class", "state")
-      .attr("d", path);
-}
-  
+      });  
 </script> 
